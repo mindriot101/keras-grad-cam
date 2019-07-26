@@ -98,14 +98,8 @@ def deprocess_image(x):
 
 
 def grad_cam(input_model, image, category_index, layer_name):
-    # model = Sequential()
-    # model.add(input_model)
-
-
-
     nb_classes = 1000
     target_layer = lambda x: target_category_loss(x, category_index, nb_classes)
-    # model.add(Lambda(target_layer, output_shape=target_category_loss_output_shape))
 
     x = input_model.layers[-1].output
     x = Lambda(target_layer, output_shape=target_category_loss_output_shape)(x)
@@ -156,11 +150,11 @@ if __name__ == "__main__":
 
     predicted_class = np.argmax(predictions)
     cam, heatmap = grad_cam(model, preprocessed_input, predicted_class, "block5_conv3")
-    cv2.imwrite("gradcam.png", cam)
+    # cv2.imwrite("gradcam.png", cam)
 
-    register_gradient()
-    guided_model = modify_backprop(model, "GuidedBackProp")
-    saliency_fn = compile_saliency_function(guided_model)
-    saliency = saliency_fn([preprocessed_input, 0])
-    gradcam = saliency[0] * heatmap[..., np.newaxis]
-    cv2.imwrite("guided_gradcam.png", deprocess_image(gradcam))
+    # register_gradient()
+    # guided_model = modify_backprop(model, "GuidedBackProp")
+    # saliency_fn = compile_saliency_function(guided_model)
+    # saliency = saliency_fn([preprocessed_input, 0])
+    # gradcam = saliency[0] * heatmap[..., np.newaxis]
+    # cv2.imwrite("guided_gradcam.png", deprocess_image(gradcam))
