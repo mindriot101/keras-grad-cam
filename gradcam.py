@@ -97,43 +97,6 @@ def deprocess_image(x):
     return x
 
 
-def grad_cam(input_model, image, category_index, layer_name):
-    nb_classes = 1000
-    target_layer = lambda x: target_category_loss(x, category_index, nb_classes)
-
-    x = input_model.layers[-1].output
-    x = Lambda(target_layer, output_shape=target_category_loss_output_shape)(x)
-    model = keras.models.Model(input_model.layers[0].input, x)
-
-    loss = K.sum(model.layers[-1].output)
-    conv_output = [l for l in model.layers if l.name == layer_name][0].output
-    grads = normalize(K.gradients(loss, conv_output)[0])
-    gradient_function = K.function([model.layers[0].input], [conv_output, grads])
-
-    output, grads_val = gradient_function([image])
-    output, grads_val = output[0, :], grads_val[0, :, :, :]
-
-    weights = np.mean(grads_val, axis=(0, 1))
-    cam = np.ones(output.shape[0:2], dtype=np.float32)
-
-    for i, w in enumerate(weights):
-        cam += w * output[:, :, i]
-
-    cam = cv2.resize(cam, (224, 224))
-    cam = np.maximum(cam, 0)
-    heatmap = cam / np.max(cam)
-
-    # Return to BGR [0..255] from the preprocessed image
-    image = image[0, :]
-    image -= np.min(image)
-    image = np.minimum(image, 255)
-
-    cam = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_WINTER)
-    cam = np.float32(cam) + np.float32(image)
-    cam = 255 * cam / np.max(cam)
-    return np.uint8(cam), heatmap
-
-
 class GradCam(object):
     def __init__(self, model):
         self.model = model
@@ -143,11 +106,47 @@ class GradCam(object):
         return cls(load_model(filename))
 
     def compute_cam(self, image_filename, layer_name):
-        preprocessed_input = load_image(args.filename)
+        preprocessed_input = load_image(image_filename)
 
         predictions = self.model.predict(preprocessed_input)
         predicted_class = np.argmax(predictions)
-        return grad_cam(self.model, preprocessed_input, predicted_class, layer_name)
+        return self._grad_cam(preprocessed_input, predicted_class, layer_name)
+
+    def _grad_cam(self, image, category_index, layer_name):
+        nb_classes = 1000
+        target_layer = lambda x: target_category_loss(x, category_index, nb_classes)
+
+        x = self.model.layers[-1].output
+        x = Lambda(target_layer, output_shape=target_category_loss_output_shape)(x)
+        model = keras.models.Model(self.model.layers[0].input, x)
+
+        loss = K.sum(model.layers[-1].output)
+        conv_output = [l for l in model.layers if l.name == layer_name][0].output
+        grads = normalize(K.gradients(loss, conv_output)[0])
+        gradient_function = K.function([model.layers[0].input], [conv_output, grads])
+
+        output, grads_val = gradient_function([image])
+        output, grads_val = output[0, :], grads_val[0, :, :, :]
+
+        weights = np.mean(grads_val, axis=(0, 1))
+        cam = np.ones(output.shape[0:2], dtype=np.float32)
+
+        for i, w in enumerate(weights):
+            cam += w * output[:, :, i]
+
+        cam = cv2.resize(cam, (224, 224))
+        cam = np.maximum(cam, 0)
+        heatmap = cam / np.max(cam)
+
+        # Return to BGR [0..255] from the preprocessed image
+        image = image[0, :]
+        image -= np.min(image)
+        image = np.minimum(image, 255)
+
+        cam = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_WINTER)
+        cam = np.float32(cam) + np.float32(image)
+        cam = 255 * cam / np.max(cam)
+        return np.uint8(cam), heatmap
 
 
 if __name__ == "__main__":
@@ -160,10 +159,7 @@ if __name__ == "__main__":
     layer_name = "block5_conv3"
     gc = GradCam.from_hdf(args.model)
 
-    import IPython
-
-    IPython.embed()
-    exit()
+    cam, heatmap = gc.compute_cam(filename, layer_name)
 
     # TODO: sort this out
     # register_gradient()
