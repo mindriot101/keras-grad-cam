@@ -113,12 +113,7 @@ class GradCam(object):
         return self._grad_cam(preprocessed_input, predicted_class, layer_name)
 
     def _grad_cam(self, image, category_index, layer_name):
-        nb_classes = 1000
-        target_layer = lambda x: target_category_loss(x, category_index, nb_classes)
-
-        x = self.model.layers[-1].output
-        x = Lambda(target_layer, output_shape=target_category_loss_output_shape)(x)
-        model = keras.models.Model(self.model.layers[0].input, x)
+        model = self._tweak_model(self.model, category_index)
 
         loss = K.sum(model.layers[-1].output)
         conv_output = [l for l in model.layers if l.name == layer_name][0].output
@@ -147,6 +142,14 @@ class GradCam(object):
         cam = np.float32(cam) + np.float32(image)
         cam = 255 * cam / np.max(cam)
         return np.uint8(cam), heatmap
+
+    def _tweak_model(self, model, category_index, nb_classes=1000):
+        target_layer = lambda x: target_category_loss(x, category_index, nb_classes)
+
+        x = self.model.layers[-1].output
+        x = Lambda(target_layer, output_shape=target_category_loss_output_shape)(x)
+        model = keras.models.Model(self.model.layers[0].input, x)
+        return model
 
 
 if __name__ == "__main__":
