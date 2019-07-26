@@ -134,25 +134,36 @@ def grad_cam(input_model, image, category_index, layer_name):
     return np.uint8(cam), heatmap
 
 
+class GradCam(object):
+    def __init__(self, model):
+        self.model = model
+
+    @classmethod
+    def from_hdf(cls, filename):
+        return cls(load_model(filename))
+
+    def compute_cam(self, image_filename, layer_name):
+        preprocessed_input = load_image(args.filename)
+
+        predictions = self.model.predict(preprocessed_input)
+        predicted_class = np.argmax(predictions)
+        return grad_cam(self.model, preprocessed_input, predicted_class, layer_name)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
     parser.add_argument("-m", "--model", required=True)
     args = parser.parse_args()
 
-    preprocessed_input = load_image(args.filename)
+    filename = "examples/cat_dog.png"
+    layer_name = "block5_conv3"
+    gc = GradCam.from_hdf(args.model)
 
-    # model = VGG16(weights="imagenet")
-    model = load_model(args.model)
+    import IPython
 
-    predictions = model.predict(preprocessed_input)
-    top_1 = decode_predictions(predictions)[0][0]
-    print("Predicted class:")
-    print("%s (%s) with probability %.2f" % (top_1[1], top_1[0], top_1[2]))
-
-    predicted_class = np.argmax(predictions)
-    cam, heatmap = grad_cam(model, preprocessed_input, predicted_class, "block5_conv3")
-    cv2.imwrite("gradcam.png", cam)
+    IPython.embed()
+    exit()
 
     # TODO: sort this out
     # register_gradient()
