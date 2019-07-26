@@ -110,11 +110,9 @@ class GradCam(object):
 
         predictions = self.model.predict(preprocessed_input)
         predicted_class = np.argmax(predictions)
-        return self._grad_cam(preprocessed_input, predicted_class, layer_name)
 
-    def _grad_cam(self, image, category_index, layer_name):
-        model = self._tweak_model(self.model, category_index)
-        cam = self._compute_cam(model, image, layer_name)
+        model = self._tweak_model(self.model, predicted_class)
+        cam = self._compute_cam(model, preprocessed_input, layer_name)
 
         # Format the output image
         image_shape = (
@@ -126,7 +124,7 @@ class GradCam(object):
         heatmap = cam / np.max(cam)
 
         # Return to BGR [0..255] from the preprocessed image
-        image = image[0, :]
+        image = preprocessed_input[0, :]
         image -= np.min(image)
         image = np.minimum(image, 255)
 
