@@ -128,7 +128,7 @@ def grad_cam(input_model, image, category_index, layer_name):
     image -= np.min(image)
     image = np.minimum(image, 255)
 
-    cam = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
+    cam = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_WINTER)
     cam = np.float32(cam) + np.float32(image)
     cam = 255 * cam / np.max(cam)
     return np.uint8(cam), heatmap
