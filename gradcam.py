@@ -114,21 +114,9 @@ class GradCam(object):
 
     def _grad_cam(self, image, category_index, layer_name):
         model = self._tweak_model(self.model, category_index)
+        cam = self._compute_cam(model, image, layer_name)
 
-        loss = K.sum(model.layers[-1].output)
-        conv_output = [l for l in model.layers if l.name == layer_name][0].output
-        grads = normalize(K.gradients(loss, conv_output)[0])
-        gradient_function = K.function([model.layers[0].input], [conv_output, grads])
-
-        output, grads_val = gradient_function([image])
-        output, grads_val = output[0, :], grads_val[0, :, :, :]
-
-        weights = np.mean(grads_val, axis=(0, 1))
-        cam = np.ones(output.shape[0:2], dtype=np.float32)
-
-        for i, w in enumerate(weights):
-            cam += w * output[:, :, i]
-
+        # Format the output image
         cam = cv2.resize(cam, (224, 224))
         cam = np.maximum(cam, 0)
         heatmap = cam / np.max(cam)
@@ -150,6 +138,23 @@ class GradCam(object):
         x = Lambda(target_layer, output_shape=target_category_loss_output_shape)(x)
         model = keras.models.Model(self.model.layers[0].input, x)
         return model
+
+    def _compute_cam(self, model, image, layer_name):
+        loss = K.sum(model.layers[-1].output)
+        conv_output = [l for l in model.layers if l.name == layer_name][0].output
+        grads = normalize(K.gradients(loss, conv_output)[0])
+        gradient_function = K.function([model.layers[0].input], [conv_output, grads])
+
+        output, grads_val = gradient_function([image])
+        output, grads_val = output[0, :], grads_val[0, :, :, :]
+
+        weights = np.mean(grads_val, axis=(0, 1))
+        cam = np.ones(output.shape[0:2], dtype=np.float32)
+
+        for i, w in enumerate(weights):
+            cam += w * output[:, :, i]
+
+        return cam
 
 
 if __name__ == "__main__":
