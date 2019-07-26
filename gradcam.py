@@ -115,14 +115,14 @@ class GradCam(object):
         cam = self._compute_cam(model, preprocessed_input, layer_name)
 
         # Format the output image
-        image_shape = (
-                int(model.input.shape[1]),
-                int(model.input.shape[2])
-                )
+        image_shape = (int(model.input.shape[1]), int(model.input.shape[2]))
         cam = cv2.resize(cam, image_shape)
         cam = np.maximum(cam, 0)
         heatmap = cam / np.max(cam)
 
+        return self._render_cam_image(preprocessed_input, heatmap), heatmap
+
+    def _render_cam_image(self, preprocessed_input, heatmap):
         # Return to BGR [0..255] from the preprocessed image
         image = preprocessed_input[0, :]
         image -= np.min(image)
@@ -131,7 +131,7 @@ class GradCam(object):
         cam = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_WINTER)
         cam = np.float32(cam) + np.float32(image)
         cam = 255 * cam / np.max(cam)
-        return np.uint8(cam), heatmap
+        return np.uint8(cam)
 
     def _tweak_model(self, model, category_index, nb_classes=1000):
         target_layer = lambda x: target_category_loss(x, category_index, nb_classes)
