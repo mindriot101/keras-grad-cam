@@ -150,8 +150,9 @@ if __name__ == "__main__":
 
     predicted_class = np.argmax(predictions)
     cam, heatmap = grad_cam(model, preprocessed_input, predicted_class, "block5_conv3")
-    # cv2.imwrite("gradcam.png", cam)
+    cv2.imwrite("gradcam.png", cam)
 
+    # TODO: sort this out
     # register_gradient()
     # guided_model = modify_backprop(model, "GuidedBackProp")
     # saliency_fn = compile_saliency_function(guided_model)
