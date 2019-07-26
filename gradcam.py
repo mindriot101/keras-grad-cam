@@ -117,7 +117,11 @@ class GradCam(object):
         cam = self._compute_cam(model, image, layer_name)
 
         # Format the output image
-        cam = cv2.resize(cam, (224, 224))
+        image_shape = (
+                int(model.input.shape[1]),
+                int(model.input.shape[2])
+                )
+        cam = cv2.resize(cam, image_shape)
         cam = np.maximum(cam, 0)
         heatmap = cam / np.max(cam)
 
