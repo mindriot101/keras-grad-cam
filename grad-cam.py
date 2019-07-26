@@ -3,7 +3,7 @@
 from keras.applications.vgg16 import VGG16, preprocess_input, decode_predictions
 from keras.preprocessing import image
 from keras.layers.core import Lambda
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from tensorflow.python.framework import ops
 import keras.backend as K
 import tensorflow as tf
@@ -137,11 +137,13 @@ def grad_cam(input_model, image, category_index, layer_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
+    parser.add_argument("-m", "--model", required=True)
     args = parser.parse_args()
 
     preprocessed_input = load_image(args.filename)
 
-    model = VGG16(weights="imagenet")
+    # model = VGG16(weights="imagenet")
+    model = load_model(args.model)
 
     predictions = model.predict(preprocessed_input)
     top_1 = decode_predictions(predictions)[0][0]
