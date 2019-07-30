@@ -159,6 +159,9 @@ class GradCam(object):
         return cam
 
 
+# Register the name "GuidedBackProp" in the gradient registry
+register_gradient()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
@@ -172,7 +175,6 @@ if __name__ == "__main__":
     cam, heatmap = gc.compute_cam(filename, layer_name)
 
     # TODO: sort this out
-    # register_gradient()
     # guided_model = modify_backprop(model, "GuidedBackProp")
     # saliency_fn = compile_saliency_function(guided_model)
     # saliency = saliency_fn([preprocessed_input, 0])
